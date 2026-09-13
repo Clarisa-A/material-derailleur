@@ -1,7 +1,8 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, ChangeEvent, FormEvent, useRef } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from './LoadingSpinner';
+import Captcha from './Captcha';
 import '../css/RegisterPage.css';
 
 interface Credentials {
@@ -9,6 +10,9 @@ interface Credentials {
     email: string;
     password: string;
     confirm_password: string;
+}
+interface CaptchaHandle {
+    resetCaptcha: () => void;
 }
 
 /** Config */
@@ -53,6 +57,10 @@ const Register: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
+    const [captcha, setCaptcha] = useState('');
+    const [captchaValue, setCaptchaValue] = useState<string>('');
+
+    const captchaRef = useRef<CaptchaHandle>(null);
 
     const computeRules = (
         password: string,
@@ -174,6 +182,13 @@ const Register: React.FC = () => {
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
+
+        if (captchaValue !== captcha) {
+            setErrorMessage('Incorrect CAPTCHA. Please try again.');
+            setIsLoading(false);
+            captchaRef.current?.resetCaptcha();
+            return;
+        }
 
         if (credentials.password !== credentials.confirm_password) {
             setErrorMessage('Passwords do not match');
@@ -410,11 +425,15 @@ const Register: React.FC = () => {
                             )}
                         </button>
                     </div>
-
+                    <Captcha
+                        ref={captchaRef}
+                        onCaptchaGenerated={setCaptcha}
+                        onCaptchaChange={setCaptchaValue}
+                    />
                     <button
                         type="submit"
                         className="btlSuccess"
-                        disabled={isLoading}
+                        disabled={!captchaValue || isLoading}
                     >
                         {isLoading ? <LoadingSpinner /> : 'Register'}
                     </button>
